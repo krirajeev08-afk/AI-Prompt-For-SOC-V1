@@ -1,547 +1,693 @@
-# AI-Prompt-For-SOC
+# 🛡️ AI SOC Analyst — Universal Security Log Analysis Prompt
 
-# 🛡️ AI-Powered SOC Analyst Assistant
-
-> A tool-agnostic AI prompt that helps SOC analysts analyze security logs, alerts, telemetry, and IOCs and convert them into structured SOC investigation reports.
+> A modular AI prompt framework that helps SOC analysts analyze security alerts, endpoint telemetry, IOC query results, and user activity logs from SIEM, EDR, XDR, and other security platforms.
 
 ---
 
 ## 📌 Overview
 
-SOC analysts work with security data from different SIEM, EDR, and XDR platforms, each using different field names and terminology.
+This project provides a reusable AI prompt for SOC analysts to analyze raw security telemetry and convert it into a structured investigation report.
 
-This project provides a **universal AI-powered SOC analysis prompt** that allows an analyst to simply copy raw logs and paste them into an AI assistant.
-
-The AI then:
+The analyst simply:
 
 ```text
-**Raw Security Logs
+Copy Alert / Logs
        ↓
-Identify Security Platform
+Paste into AI with this prompt
        ↓
-Analyze Telemetry
+AI identifies investigation mode
        ↓
-Extract IOCs
+Analyzes and correlates telemetry
        ↓
-Map MITRE ATT&CK
+MITRE ATT&CK mapping
        ↓
-Assess Risk
+Risk assessment
        ↓
-Generate SOC Investigation Report**
+SOC investigation report
 ```
 
-The goal is to reduce repetitive analysis and documentation while maintaining a consistent investigation methodology.
-
----
-
-# 🎯 Problem Statement
-
-Raw security alerts can contain hundreds of fields, making manual investigation time-consuming.
-
-For example:
-
-```text
-DeviceName=WIN-CLIENT01
-UserName=john.doe
-ProcessName=powershell.exe
-ParentProcess=winword.exe
-CommandLine=powershell.exe -enc ...
-RemoteIP=185.x.x.x
-FileHash=<HASH>
-DetectionName=Suspicious PowerShell Activity
-Severity=High
-```
-
-A SOC analyst needs to determine:
-
-* What happened?
-* Which user and asset were affected?
-* What process executed?
-* Is the activity malicious or legitimate?
-* Were network connections made?
-* Are there relevant IOCs?
-* Which MITRE ATT&CK techniques apply?
-* What response action was taken?
-* What should happen next?
-
-This prompt standardizes these tasks into a single workflow.
-
----
-
-# 🚀 Key Features
-
-| Feature                    | Description                                                     |
-| -------------------------- | --------------------------------------------------------------- |
-| 🔍 Platform Identification | Identifies the likely SIEM/EDR/XDR source                       |
-| 🧠 Log Analysis            | Interprets raw security telemetry                               |
-| 🌳 Process Analysis        | Reviews execution and parent-child relationships                |
-| 🧬 IOC Extraction          | Extracts IPs, domains, hashes, files, users, etc.               |
-| 🎯 MITRE ATT&CK            | Maps supported activity to ATT&CK techniques                    |
-| 🛡️ Response Analysis      | Identifies actions such as Blocked, Quarantined, Isolated, etc. |
-| ⚠️ Risk Assessment         | Provides evidence-based risk evaluation                         |
-| 📋 SOC Reporting           | Generates a structured investigation report                     |
-| 🔄 Cross-Platform          | Uses the same framework across different security products      |
-
----
-
-# 🧠 Supported Security Platforms
-
-The prompt is designed to work with telemetry from platforms such as:
+The framework can be used with:
 
 * Microsoft Sentinel
 * Microsoft Defender for Endpoint
 * SentinelOne
+* VMware Carbon Black
 * CrowdStrike Falcon
 * Palo Alto Cortex XDR
-* VMware Carbon Black
 * Splunk
 * IBM QRadar
 * Elastic Security
-* Generic SIEM / EDR / XDR exports
+* Generic SIEM/EDR/XDR exports
+* Excel/CSV query results
 
-It is **not restricted to these products**. If the platform is unfamiliar, the AI can infer field meanings from the available telemetry and clearly identify uncertain mappings.
+---
+
+# 🎯 Key Capabilities
+
+The prompt helps analysts:
+
+* Analyze individual security alerts.
+* Hunt for suspicious endpoint behavior.
+* Investigate IOCs across large datasets.
+* Build user activity timelines.
+* Correlate processes, files, users, hosts, and network activity.
+* Identify suspicious execution and LOLBin usage.
+* Extract relevant IOCs.
+* Map activity to MITRE ATT&CK.
+* Assess risk.
+* Generate investigation recommendations.
+* Produce consistent, client-ready SOC reports.
+
+---
+
+# 🧠 Investigation Modes
+
+The AI determines the appropriate mode from the supplied data. If the user explicitly specifies a mode, that mode takes priority.
+
+## Mode A — Alert / Incident Triage
+
+Used for a single alert, detection, or incident.
+
+### Objective
+
+Reconstruct the event:
+
+```text
+Initial Trigger
+      ↓
+Execution
+      ↓
+Follow-on Activity
+      ↓
+Security Response
+      ↓
+Risk Assessment
+```
+
+The alert is treated as the anchor event.
+
+---
+
+## Mode B — Threat Hunting — Endpoint
+
+Used for raw endpoint telemetry without a seed alert.
+
+The AI should not assume malicious activity.
+
+It establishes an implicit baseline and identifies deviations such as:
+
+* Unusual process ancestry
+* Rare LOLBin usage
+* Off-hours execution
+* Unexpected script paths
+* Unfamiliar network destinations
+* Abnormal user activity
+
+Findings are ranked:
+
+**High / Medium / Low**
+
+If no suspicious activity is identified, the AI must clearly state that.
+
+---
+
+## Mode C — IOC Pivot / Bulk Query Review
+
+Used for Excel, CSV, or other tabular IOC query results.
+
+The AI should **aggregate the data instead of narrating rows individually**.
+
+Analysis includes:
+
+* Affected hosts
+* Users
+* Processes
+* Destinations
+* First-seen timestamp
+* Last-seen timestamp
+* Frequency
+* Scope
+* Common patterns
+* Outliers
+
+### Example
+
+Instead of:
+
+```text
+Row 1 → HOST-01
+Row 2 → HOST-02
+Row 3 → HOST-03
+...
+```
+
+Generate:
+
+```text
+IOC X was observed across 14 hosts.
+
+12 hosts followed the same activity pattern.
+
+2 hosts deviated from the majority pattern
+and require additional investigation.
+```
+
+---
+
+## Mode D — User Activity Investigation
+
+Used for telemetry associated with a specific user.
+
+The AI builds a chronological timeline and identifies:
+
+* Authentication activity
+* Devices
+* Locations
+* Access times
+* Privilege changes
+* File activity
+* Network activity
+* Authentication anomalies
+* Unusual behavior
+
+The investigation includes an overall **behavioral risk rating**.
 
 ---
 
 # 🔍 Universal Analysis Framework
 
-The AI analyzes whichever categories are supported by the supplied logs.
+The AI analyzes the available telemetry using the following categories:
 
-### Detection & Threat
+### Detection Metadata
 
-* Detection metadata
-* Alert/incident information
-* Threat classification
+* Alert/incident name
+* Detection name
 * Severity
-* Detection type
+* Timestamp
+* Security product
 
-### Execution & Files
+### Threat & Execution
 
-* Process creation
-* Parent-child relationships
-* Command lines
-* File creation/modification/deletion
-* Script/interpreter activity
-* LOLBins
+* Threat classification
+* Process
+* Parent/child processes
+* Process ancestry
+* Execution path
+* Command line
 
-### Security Activity
+### File & Script Activity
 
-* Persistence
-* Credential access
-* Network communication
-* Identity/authentication activity
-* Lateral movement
-* IOC information
+* File name/path
+* File creation/modification/execution
+* Hashes
+* Scripts/interpreters
+* PowerShell
+* Command Prompt
+* Other scripting engines
 
-### Response & Classification
+### LOLBins
 
-* Security-product response
-* User vs automated activity
-* MITRE ATT&CK
-* Malicious / Suspicious / Benign / False Positive / User-Driven
+Identify potential Living-off-the-Land Binary usage and correlate it with the surrounding execution context.
 
-If information is unavailable, the AI reports:
+### Persistence
+
+Look for available evidence involving:
+
+* Registry
+* Scheduled tasks
+* Services
+* Startup mechanisms
+* Other persistence techniques
+
+### Credential Access
+
+Identify available indicators involving:
+
+* Credential dumping
+* Authentication abuse
+* Tokens/sessions
+* Privilege escalation
+
+### Network Communication
+
+Analyze:
+
+* Source IP
+* Destination IP
+* Domain
+* URL
+* Port/protocol
+* Connection frequency
+* Responsible process
+
+### Identity & Lateral Movement
+
+Analyze:
+
+* User activity
+* Authentication events
+* Privilege changes
+* Remote access
+* Remote execution
+* Cross-host activity
+
+### IOC Reputation
+
+Analyze available:
+
+* File hashes
+* IP addresses
+* Domains
+* URLs
+* File/process names
+
+Distinguish between an **observed IOC** and a **confirmed malicious IOC**.
+
+### Security Product Response
+
+Identify whether the security product:
+
+* Blocked
+* Quarantined
+* Killed
+* Isolated
+* Contained
+* Rolled back
+* Remediated
+* Took no action
+* Generated an alert only
+
+### Activity Classification
+
+Classify the overall activity as:
+
+* Malicious
+* Suspicious
+* Benign
+* False Positive
+* User-Driven Activity
+
+Unavailable information must be reported as:
 
 ```text
 Not Available
 ```
 
-instead of guessing.
-
----
-
-# 🔄 Investigation Workflow
-
-```mermaid
-flowchart LR
-    A[Raw Logs] --> B[Platform Identification]
-    B --> C[Telemetry Analysis]
-    C --> D[IOC Extraction]
-    D --> E[MITRE ATT&CK]
-    E --> F[Risk Assessment]
-    F --> G[Recommendations]
-    G --> H[SOC Report]
-```
-
----
-
-# 📊 Generated SOC Report
-
-The AI produces a standardized report containing:
-
-```text
-Incident Summary
-        ↓
-Source Platform(s)
-        ↓
-Technical Analysis
-        ↓
-IOC Details
-        ↓
-MITRE ATT&CK Mapping
-        ↓
-Risk Assessment
-        ↓
-Recommendations
-        ↓
-Final Verdict
-```
-
-### IOC Details
-
-The report can include:
-
-| Field               | Example                          |
-| ------------------- | -------------------------------- |
-| Alert/Incident Name | Suspicious PowerShell Activity   |
-| Asset / Hostname    | WIN-CLIENT01                     |
-| Username            | john.doe                         |
-| Process             | powershell.exe                   |
-| Parent Process      | winword.exe                      |
-| Command Line        | Available telemetry              |
-| Source IP           | Available telemetry              |
-| Destination IP      | Available telemetry              |
-| URL / Domain        | Available telemetry              |
-| File Hash           | SHA256/MD5/SHA1                  |
-| Detection Name      | Available telemetry              |
-| Severity            | High                             |
-| Timestamp           | Available telemetry              |
-| Response Action     | Blocked / Quarantined / Isolated |
-
 ---
 
 # 🎯 MITRE ATT&CK Mapping
 
-Where sufficient evidence exists, the AI maps relevant tactics and techniques.
+Map observed behavior to relevant MITRE ATT&CK tactics and techniques.
 
 Example:
 
 ```text
-Execution
- └── Command and Scripting Interpreter
-
-Persistence
- └── Scheduled Task/Job
-
-Credential Access
- └── OS Credential Dumping
-
-Defense Evasion
- └── Obfuscated/Compressed Files
-
-Command and Control
- └── Application Layer Protocol
+T1059.001 — PowerShell
+T1027     — Obfuscated/Compressed Files and Information
 ```
 
-Techniques should only be mapped when supported by the supplied telemetry.
+Do not assign a technique solely because a keyword appears in the telemetry. Mapping must be supported by observed behavior.
 
 ---
 
-# 💻 How to Use
+# 📋 Standard Investigation Output
 
-## Step 1 — Copy the SOC Prompt
-
-Copy the complete **SOC Analyst Assistant System Prompt** from this repository.
-
-## Step 2 — Open an AI Assistant
-
-Paste the prompt into your preferred AI assistant.
-
-## Step 3 — Copy Your Security Logs
-
-Copy the relevant alert or raw telemetry from your SIEM, EDR, XDR, or other security platform.
-
-Example:
+Every investigation should follow this structure:
 
 ```text
-Alert Name:
+Investigation Mode:
+
+Incident Summary:
+
+Source Platform(s) Identified:
+
+Technical Analysis:
+
+IOC Details:
+
+MITRE ATT&CK Mapping:
+
+Risk Assessment:
+
+Recommendations:
+
+Verdict:
+```
+
+The **Technical Analysis** section should use the Universal Analysis Framework and, where applicable, include the aggregation, baseline, or timeline required by Modes B, C, and D.
+
+---
+
+# 🧾 IOC Details
+
+Extract the following information where available:
+
+| Field                    | Value |
+| ------------------------ | ----- |
+| Alert/Incident Name      |       |
+| Asset / Hostname(s)      |       |
+| Username(s)              |       |
+| File Name / Path         |       |
+| Process / Parent Process |       |
+| Command Line             |       |
+| Source IP                |       |
+| Destination IP           |       |
+| URL / Domain             |       |
+| Registry Key             |       |
+| File Hash                |       |
+| Detection Name           |       |
+| Severity                 |       |
+| Timestamp / Time Range   |       |
+| Security Product(s)      |       |
+| Response Action          |       |
+| Scope                    |       |
+
+Use **Not Available** when the telemetry does not contain the requested information.
+
+---
+
+# 🧪 Example
+
+### Input
+
+```text
+Alert:
 Suspicious PowerShell Activity
 
-Device:
-WIN-CLIENT01
+Host:
+WIN-CLIENT-01
 
 User:
-john.doe
+user01
 
 Process:
 powershell.exe
 
-Parent:
-winword.exe
+Parent Process:
+WINWORD.EXE
 
 Command Line:
-powershell.exe -...
+powershell.exe -ExecutionPolicy Bypass ...
 
-Remote IP:
-x.x.x.x
+Destination:
+185.x.x.x
 
-Hash:
-<FILE_HASH>
+Timestamp:
+2026-09-01 10:30:00
 ```
 
-## Step 4 — Paste the Logs
-
-Paste the logs below the prompt.
-
-No manual restructuring is required.
-
-## Step 5 — Review the Investigation
-
-The AI generates a structured report containing:
+### AI Investigation
 
 ```text
-Incident Summary
-Technical Analysis
-IOC Details
-MITRE ATT&CK
-Risk Assessment
-Recommendations
-Verdict
+Investigation Mode:
+A — Alert / Incident Triage
+
+Incident Summary:
+Suspicious PowerShell activity was observed on
+WIN-CLIENT-01 under user01.
+
+PowerShell was launched by WINWORD.EXE and used
+ExecutionPolicy Bypass. Associated network
+communication was also observed.
+
+Source Platform:
+Not Available.
+
+Technical Analysis:
+- PowerShell execution observed.
+- Office application was the parent process.
+- Execution policy bypass was used.
+- Network communication was associated with the activity.
+- Persistence: Not Available.
+- Credential Access: Not Available.
+- Security Response: Not Available.
+
+MITRE ATT&CK:
+T1059.001 — PowerShell
+
+Risk Assessment:
+High
+
+Recommendations:
+1. Retrieve the complete PowerShell command.
+2. Investigate the originating Word document.
+3. Review the destination IP.
+4. Search for related activity on other endpoints.
+5. Check for persistence.
+6. Review the user's recent activity.
+
+Verdict:
+Suspicious
+```
+
+> The example is illustrative. The actual verdict must be based on the telemetry supplied during an investigation.
+
+---
+
+# 📈 Investigation Workflow
+
+```mermaid
+flowchart TD
+    A[Security Alert / Logs] --> B[Paste into AI]
+    B --> C[Identify Investigation Mode]
+    C --> D[Identify Platform]
+    D --> E[Normalize Telemetry]
+    E --> F[Analyze Execution / Files]
+    F --> G[Analyze Scripts / LOLBins]
+    G --> H[Analyze Network / Identity]
+    H --> I[Correlate IOCs]
+    I --> J[MITRE ATT&CK]
+    J --> K[Risk Assessment]
+    K --> L[Recommendations]
+    L --> M[Final Verdict]
 ```
 
 ---
 
-# 🧪 Example Use Case
+# 🚀 How to Use
 
-### Scenario
+## Step 1 — Copy the Prompt
 
-A SOC analyst receives an alert for suspicious PowerShell execution.
+Copy the complete SOC Analyst Assistant prompt from this repository.
+
+## Step 2 — Collect Security Data
+
+Copy the relevant information from your:
+
+* SIEM
+* EDR
+* XDR
+* Threat-hunting query
+* IOC search
+* Authentication logs
+* Excel/CSV export
+
+## Step 3 — Paste Into Your AI Assistant
+
+Paste the prompt followed by the security telemetry.
+
+Example:
 
 ```text
-DeviceName=WIN-CLIENT01
-UserName=analyst
-ParentProcess=WINWORD.EXE
-ProcessName=powershell.exe
-CommandLine=powershell.exe ...
-DetectionName=Suspicious PowerShell Activity
-Severity=High
+[AI SOC Analyst Prompt]
+
+========== LOGS / DATA ==========
+
+[Paste your logs here]
 ```
 
-The analyst pastes the telemetry into the AI assistant.
+## Step 4 — Review the Generated Report
 
-The AI can organize the investigation into:
+The AI will identify the appropriate investigation mode and generate the structured output.
 
-```text
-Detection
-   ↓
-Process Tree
-   ↓
-PowerShell Analysis
-   ↓
-Command-Line Analysis
-   ↓
-Network / IOC Analysis
-   ↓
-MITRE ATT&CK
-   ↓
-Risk Assessment
-   ↓
-Recommendations
-```
+## Step 5 — Validate the Findings
+
+Always verify important findings against the original security platform before taking containment or remediation actions.
 
 ---
 
 # 🔐 Security & Privacy
 
-Security logs may contain sensitive information. Before sending logs to an AI system or publishing examples, remove or mask:
+Before submitting telemetry to an AI system, review the data for sensitive information.
+
+Redact where appropriate:
 
 ```text
 Passwords
 API Keys
 Access Tokens
 Private Keys
+Cloud Credentials
 Session Tokens
-Credentials
-Personal Information
-Sensitive Customer Data
+Sensitive Personal Information
 ```
 
 Example:
 
 ```text
-Original:
-api_key=xxxxxxxx
-
-Safe:
-api_key=<REDACTED_API_KEY>
+Authorization: Bearer <REDACTED>
 ```
 
-**Never publish real secrets or credentials on GitHub.**
+> ⚠️ Never intentionally publish real credentials, tokens, secrets, or confidential incident information to GitHub.
 
 ---
 
-# ⚠️ Limitations
+# ⚠️ Technical Accuracy & Limitations
 
-AI analysis depends on the quality and completeness of the supplied telemetry.
+The prompt follows these principles:
 
-```text
-Incomplete Logs
-      ↓
-Limited Evidence
-      ↓
-Limited Analysis
-      ↓
-Lower Confidence
-```
+### No Hallucination
 
-For example:
-
-* Missing process-tree data → limited execution analysis
-* Missing network data → limited network investigation
-* Missing authentication data → limited identity analysis
-
-The AI should clearly state when information is unavailable rather than inventing evidence.
-
----
-
-# 👨‍💻 Who Can Use This?
-
-* SOC Analysts
-* Security Analysts
-* Incident Responders
-* Threat Hunters
-* Detection Engineers
-* Blue Team Members
-* Security Engineers
-* Cybersecurity Students
-
----
-
-# 💡 Use Cases
-
-### Alert Triage
-
-Convert raw alerts into structured investigation summaries.
-
-### Incident Response
-
-Organize evidence and identify potential attack activity.
-
-### Threat Hunting
-
-Analyze telemetry and identify potential ATT&CK techniques.
-
-### Client Reporting
-
-Convert technical security data into readable investigation reports.
-
-### SOC Documentation
-
-Standardize investigation notes and incident tickets.
-
-### Cross-Platform Investigation
-
-Apply the same analysis methodology across different security products.
-
----
-
-# 📚 Analysis Methodology
-
-The core methodology is:
-
-```text
-Raw Telemetry
-      ↓
-Identify Source
-      ↓
-Normalize Terminology
-      ↓
-Analyze Evidence
-      ↓
-Correlate Activity
-      ↓
-Extract IOCs
-      ↓
-Map MITRE ATT&CK
-      ↓
-Assess Risk
-      ↓
-Recommend Actions
-      ↓
-Generate SOC Report
-```
-
----
-
-# ⭐ Why Use This?
-
-### Traditional SOC Analysis
-
-```text
-Alert
- ↓
-Manual Analysis
- ↓
-IOC Extraction
- ↓
-MITRE Mapping
- ↓
-Report Writing
-```
-
-### AI-Assisted SOC Analysis
-
-```text
-Alert / Logs
- ↓
-Paste into AI
- ↓
-Automated Analysis
- ↓
-IOC Extraction
- ↓
-MITRE Mapping
- ↓
-Risk Assessment
- ↓
-SOC Report
-```
-
-The purpose is **not to replace the SOC analyst**. It is to reduce repetitive investigation and documentation work so analysts can focus on validation, correlation, and response.
-
----
-
-# 🔎 Technical Accuracy
-
-The prompt follows a strict **evidence-first** approach.
-
-It should never fabricate:
+Do not invent:
 
 * Commands
 * APIs
-* Product features
-* Configuration values
+* Features
 * URLs
 * Permissions
+* Architecture
+* Configuration
 * Error messages
-* Security events
-* IOCs
+* Security-product capabilities
 
-When information is missing:
+If information is unavailable:
 
 ```text
 Not Available
 ```
 
-When platform identification is uncertain:
+### Verify Important Information
+
+For product-specific implementation or current technical details, prefer:
+
+1. Official vendor documentation
+2. Official GitHub repository
+3. Official API documentation
+
+### Analyst Validation
+
+AI-generated analysis should be treated as **analyst assistance**, not definitive evidence.
+
+Always validate important conclusions against the original telemetry and security tooling.
+
+---
+
+# 🛡️ Best Practices
+
+* Use authorized security data only.
+* Sanitize sensitive information.
+* Do not expose credentials.
+* Validate AI-generated findings.
+* Preserve original telemetry for investigation.
+* Correlate findings with SIEM/EDR/XDR data.
+* Use threat intelligence where appropriate.
+* Do not take destructive response actions solely from an AI-generated verdict.
+* Document the evidence supporting the final classification.
+
+---
+
+# 💡 Real-World Use Cases
+
+### 1. Alert Triage
+
+Quickly turn a raw security alert into an investigation summary.
+
+### 2. Threat Hunting
+
+Identify unusual endpoint behavior without relying on a predefined alert.
+
+### 3. IOC Investigation
+
+Analyze large IOC query exports and identify affected systems and outliers.
+
+### 4. User Investigation
+
+Build a timeline of authentication and endpoint activity.
+
+### 5. Incident Documentation
+
+Convert technical investigation findings into consistent SOC case documentation.
+
+---
+
+# 📁 Recommended Repository Structure
 
 ```text
-Platform mapping inferred from available telemetry.
+ai-soc-analyst/
+│
+├── README.md
+│
+├── prompts/
+│   └── soc-analyst-assistant.md
+│
+├── examples/
+│   ├── alert-triage.md
+│   ├── threat-hunting.md
+│   ├── ioc-investigation.md
+│   └── user-investigation.md
+│
+├── images/
+│   ├── investigation-workflow.png
+│   └── sample-output.png
+│
+├── docs/
+│   ├── investigation-modes.md
+│   ├── mitre-mapping.md
+│   └── best-practices.md
+│
+└── LICENSE
 ```
 
 ---
 
-# ⚠️ Disclaimer
+# 🤝 Contributing
 
-This project is an **AI-assisted SOC investigation methodology** intended for:
+Contributions are welcome.
 
-* Authorized security monitoring
-* Defensive security operations
-* Incident response
-* Threat detection
-* Security research
-* Lab environments
+You can contribute:
 
-AI-generated findings must be validated against the original telemetry before taking security or business-impacting actions.
+* Investigation examples
+* Detection-analysis improvements
+* New investigation modes
+* SIEM/EDR/XDR examples
+* MITRE ATT&CK mappings
+* Prompt improvements
+* Documentation improvements
 
-> **Copy the logs → Let AI structure the investigation → Validate the evidence → Make the final SOC decision.**
+Do not submit real credentials, confidential incident information, or sensitive customer data.
+
+---
+
+# ⚖️ Disclaimer
+
+This project is an **AI-assisted SOC investigation framework**.
+
+It does not guarantee that an activity is malicious, benign, or a false positive.
+
+Analysts should validate AI-generated findings against the original telemetry, security tools, threat intelligence, and organizational investigation procedures.
+
+Use this framework only with data you are authorized to analyze.
+
+---
+
+# ⭐ Project Goal
+
+The goal is to provide SOC analysts with a consistent methodology for turning raw security telemetry into actionable investigation intelligence.
+
+```text
+Raw Security Data
+       ↓
+AI Analysis
+       ↓
+Correlation
+       ↓
+MITRE ATT&CK
+       ↓
+Risk Assessment
+       ↓
+Recommendations
+       ↓
+SOC Verdict
+```
+
+> **Copy the logs → Paste into AI → Investigate faster → Validate before acting.**
